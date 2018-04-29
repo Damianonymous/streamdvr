@@ -1,6 +1,6 @@
 const Promise = require("bluebird");
 const mfc     = require("MFCAuto");
-const site    = require("./site");
+const site    = require("../core/site");
 const _       = require("underscore");
 const colors  = require("colors/safe");
 

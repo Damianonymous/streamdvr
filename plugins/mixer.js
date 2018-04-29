@@ -1,7 +1,7 @@
 const Promise      = require("bluebird");
 const colors       = require("colors/safe");
 const childProcess = require("child_process");
-const site         = require("./site");
+const site         = require("../core/site");
 
 class Mixer extends site.Site {
     constructor(config, tui) {

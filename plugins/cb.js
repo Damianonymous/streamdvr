@@ -1,7 +1,7 @@
 const Promise = require("bluebird");
 const colors  = require("colors/safe");
 const fetch   = require("node-fetch");
-const site    = require("./site");
+const site    = require("../core/site");
 
 function promiseSerial(funcs) {
     return funcs.reduce((promise, func) => promise.then((result) => func().then(Array.prototype.concat.bind(result))), Promise.resolve([]));

@@ -10,11 +10,11 @@ const yaml     = require("js-yaml");
 const path     = require("path");
 
 // local libraries
-const TUI      = require("./tui");
-const MFC      = require("./mfc");
-const CB       = require("./cb");
-const TWITCH   = require("./twitch");
-const MIXER    = require("./mixer");
+const TUI      = require("./core/tui");
+const MFC      = require("./plugins/mfc");
+const CB       = require("./plugins/cb");
+const TWITCH   = require("./plugins/twitch");
+const MIXER    = require("./plugins/mixer");
 
 const logFile  = fs.createWriteStream(path.resolve() + "/streamdvr.log", {flags: "w"});
 const config   = yaml.safeLoad(fs.readFileSync("config.yml", "utf8"));

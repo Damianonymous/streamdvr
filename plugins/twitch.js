@@ -2,7 +2,7 @@ const Promise      = require("bluebird");
 const colors       = require("colors/safe");
 const fetch        = require("node-fetch");
 const childProcess = require("child_process");
-const site         = require("./site");
+const site         = require("../core/site");
 
 class Twitch extends site.Site {
     constructor(config, tui) {
