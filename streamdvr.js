@@ -16,11 +16,13 @@ const CB       = require("./plugins/cb");
 const TWITCH   = require("./plugins/twitch");
 const MIXER    = require("./plugins/mixer");
 
-const logFile  = fs.createWriteStream(path.resolve() + "/streamdvr.log", {flags: "w"});
 const config   = yaml.safeLoad(fs.readFileSync("config.yml", "utf8"));
 const tui      = new TUI.Tui(config);
 
+let logFile;
 if (config.tui) {
+    // When stdout taken over by TUI, redirect log to a file
+    logFile = fs.createWriteStream(path.resolve() + "/streamdvr.log", {flags: "w"});
     console.log = function(msg) {
         logFile.write(util.format(msg) + "\n");
     };
