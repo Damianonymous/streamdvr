@@ -19,7 +19,7 @@ class Tui {
 
         this.total = Number(config.enableMFC) + Number(config.enableCB) + Number(config.enableTwitch) + Number(config.enableMixer);
 
-        this.screen = blessed.screen({smartCSR: true});
+        this.screen = blessed.screen({smartCSR: true, autoPadding: true, dockBorders: true});
         this.screen.title = "streamdvr";
 
         this.SITES = [];
@@ -30,7 +30,7 @@ class Tui {
             top: 0,
             left: 0,
             height: "100%-1",
-            width: "50%",
+            width: 70,
             keys: true,
             mouse: false,
             alwaysScroll: true,
@@ -41,7 +41,7 @@ class Tui {
                 ch: " ",
                 bg: "blue"
             },
-            border : {
+            border: {
                 type: "line",
                 fg: "blue"
             }
@@ -49,9 +49,9 @@ class Tui {
 
         this.logbody = blessed.box({
             top: 0,
-            left: "50%",
+            left: 69,
             height: "100%-1",
-            width: "50%",
+            width: "100%-70",
             keys: true,
             mouse: false,
             alwaysScroll: true,
@@ -59,6 +59,10 @@ class Tui {
             scrollbar: {
                 ch: " ",
                 bg: "blue"
+            },
+            border: {
+                type: "line",
+                fg: "blue"
             }
         });
 
@@ -244,17 +248,26 @@ class Tui {
         switch (window) {
         case "list":
             switch (cmd) {
-            case "show": this.list.show(); this.logbody.left = "50%"; this.logbody.width = "50%";  this.listHidden = false; break;
-            case "hide": this.list.hide(); this.logbody.left = 0;     this.logbody.width = "100%"; this.listHidden = true;  break;
+            case "show": this.list.show(); this.logbody.left = 69; this.logbody.width = "100%-70"; this.listHidden = false; break;
+            case "hide": this.list.hide(); this.logbody.left = 0;  this.logbody.width = "100%";    this.listHidden = true;  break;
             }
             break;
         case "log":
             switch (cmd) {
-            case "show": this.logbody.show(); this.list.width = "50%";  this.logHidden = false; break;
+            case "show": this.logbody.show(); this.list.width = 70;     this.logHidden = false; break;
             case "hide": this.logbody.hide(); this.list.width = "100%"; this.logHidden = true;  break;
             }
             break;
         }
+
+        if (this.listHidden || this.logHidden) {
+            this.list.border.type = "bg";
+            this.logbody.border.type = "bg";
+        } else {
+            this.list.border.type = "line";
+            this.logbody.border.type = "line";
+        }
+
         this.render();
     }
 
