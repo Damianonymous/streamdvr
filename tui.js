@@ -109,6 +109,9 @@ class Tui {
         this.screen.append(this.inputBar);
         this.logbody.focus();
 
+        this.logHidden = false;
+        this.listHidden = true;
+
         // CLI
         this.inputBar.on("submit", (text) => {
             this.inputBar.clearValue();
@@ -187,46 +190,50 @@ class Tui {
     log(text) {
         this.logbody.pushLine(text);
         this.logbody.setScrollPerc(100);
-        this.render();  // TODO: skip if log is hidden for perf
+        if (!this.logHidden) {
+            this.render();
+        }
         console.log(text);
     }
 
     render() {
         if (typeof this.screen !== "undefined") {
-            // TODO: Hack
-            for (let i = 0; i < 300; i++) {
-                this.list.deleteLine(0);
-            }
-
-            let streamerList = [];
-            for (let i = 0; i < this.SITES.length; i++) {
-                streamerList = streamerList.concat(this.SITES[i].getStreamerList());
-            }
-
-            // Map keys are UID, but want to sort list by name.
-            // const sortedKeys = Array.from(streamerList.keys()).sort((a, b) => {
-            //     if (streamerList.get(a).nm < streamerList.get(b).nm) {
-            //         return -1;
-            //     }
-            //     if (streamerList.get(a).nm > streamerList.get(b).nm) {
-            //         return 1;
-            //     }
-            //     return 0;
-            // });
-
-            // for (let i = 0; i < sortedKeys.length; i++) {
-            for (let i = 0; i < streamerList.length; i++) {
-                // const value = streamerList.get(sortedKeys[i]);
-                const value = streamerList[i];
-                const name  = (colors.name(value.nm) + this.listpad).substring(0, this.listpad.length);
-                const site = value.site;
-                let state;
-                if (value.filename === "") {
-                    state = value.state === "Offline" ? colors.offline(value.state) : colors.state(value.state);
-                } else {
-                    state = colors.file(value.filename);
+            if (!this.listHidden) {
+                // TODO: Hack
+                for (let i = 0; i < 300; i++) {
+                    this.list.deleteLine(0);
                 }
-                this.list.pushLine(name + site + state);
+
+                let streamerList = [];
+                for (let i = 0; i < this.SITES.length; i++) {
+                    streamerList = streamerList.concat(this.SITES[i].getStreamerList());
+                }
+
+                // Map keys are UID, but want to sort list by name.
+                // const sortedKeys = Array.from(streamerList.keys()).sort((a, b) => {
+                //     if (streamerList.get(a).nm < streamerList.get(b).nm) {
+                //         return -1;
+                //     }
+                //     if (streamerList.get(a).nm > streamerList.get(b).nm) {
+                //         return 1;
+                //     }
+                //     return 0;
+                // });
+
+                // for (let i = 0; i < sortedKeys.length; i++) {
+                for (let i = 0; i < streamerList.length; i++) {
+                    // const value = streamerList.get(sortedKeys[i]);
+                    const value = streamerList[i];
+                    const name  = (colors.name(value.nm) + this.listpad).substring(0, this.listpad.length);
+                    const site = value.site;
+                    let state;
+                    if (value.filename === "") {
+                        state = value.state === "Offline" ? colors.offline(value.state) : colors.state(value.state);
+                    } else {
+                        state = colors.file(value.filename);
+                    }
+                    this.list.pushLine(name + site + state);
+                }
             }
             this.screen.render();
         }
@@ -237,14 +244,14 @@ class Tui {
         switch (window) {
         case "list":
             switch (cmd) {
-            case "show": this.list.show(); this.logbody.left = "50%"; this.logbody.width = "50%";  break;
-            case "hide": this.list.hide(); this.logbody.left = 0;     this.logbody.width = "100%"; break;
+            case "show": this.list.show(); this.logbody.left = "50%"; this.logbody.width = "50%";  this.listHidden = false; break;
+            case "hide": this.list.hide(); this.logbody.left = 0;     this.logbody.width = "100%"; this.listHidden = true;  break;
             }
             break;
         case "log":
             switch (cmd) {
-            case "show": this.logbody.show(); this.list.width = "50%";  break;
-            case "hide": this.logbody.hide(); this.list.width = "100%"; break;
+            case "show": this.logbody.show(); this.list.width = "50%";  this.logHidden = false; break;
+            case "hide": this.logbody.hide(); this.list.width = "100%"; this.logHidden = true;  break;
             }
             break;
         }
@@ -290,8 +297,8 @@ class Tui {
         this.config.captureDirectory  = this.mkdir(this.config.captureDirectory);
         this.config.completeDirectory = this.mkdir(this.config.completeDirectory);
 
-        // this.display(this.config.listshown ? "show" : "hide", "list");
-        // this.display(this.config.logshown  ? "show" : "hide", "log");
+        this.display(this.config.listshown ? "show" : "hide", "list");
+        this.display(this.config.logshown  ? "show" : "hide", "log");
         this.render();
     }
 
