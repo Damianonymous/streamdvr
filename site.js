@@ -33,6 +33,7 @@ class Site {
 
         // Blessed UI elements
         this.tui = tui;
+        this.hidden = 0;
 
         // determines position in UI
         this.inst = inst++;
@@ -124,11 +125,13 @@ class Site {
     hide() {
         this.title.hide();
         this.list.hide();
+        this.hidden = 1;
     }
 
     show() {
         this.title.show();
         this.list.show();
+        this.hidden = 0;
     }
 
     full() {
@@ -198,22 +201,36 @@ class Site {
     }
 
     getCaptureArguments(url, filename) {
-        return [
-            "-hide_banner",
-            "-v",
-            "fatal",
-            "-i",
-            url,
-            "-c",
-            "copy",
-            "-vsync",
-            "2",
-            "-r",
-            "60",
-            "-b:v",
-            "500k",
-            this.config.captureDirectory + "/" + filename + ".ts"
-        ];
+        let params = [];
+
+        if (this.config.streamlink) {
+            const urlProt = "hlsvariant://" + url;
+            params = [
+                "-Q",
+                "-o",
+                this.config.captureDirectory + "/" + filename + ".ts",
+                urlProt,
+                "best"
+            ];
+        } else {
+            params = [
+                "-hide_banner",
+                "-v",
+                "fatal",
+                "-i",
+                url,
+                "-c",
+                "copy",
+                "-vsync",
+                "2",
+                "-r",
+                "60",
+                "-b:v",
+                "500k",
+                this.config.captureDirectory + "/" + filename + ".ts"
+            ];
+        }
+        return params;
     }
 
     processUpdates() {
@@ -323,10 +340,10 @@ class Site {
         if (streamer.state !== prevState) {
             this.msg(msg);
         }
-        if (streamer.captureProcess !== null && !isStreaming) {
+        if (streamer.postProcess === 0 && streamer.captureProcess !== null && !isStreaming) {
             // Sometimes the ffmpeg process doesn't end when a streamer
             // stops broadcasting, so terminate it.
-            this.dbgMsg(colors.name(streamer.nm) + " is no longer broadcasting, ending ffmpeg process.");
+            this.dbgMsg(colors.name(streamer.nm) + " is no longer broadcasting, ending " + (this.config.streamlink ? "streamlink" : "ffmpeg") + " capture process.");
             this.haltCapture(streamer.uid);
         }
     }
@@ -361,7 +378,7 @@ class Site {
         this.dbgMsg(streamers.length + " streamer(s) to capture");
         for (let i = 0; i < streamers.length; i++) {
             const cap = this.setupCapture(streamers[i]).then((bundle) => {
-                if (bundle.spawnArgs !== "") {
+                if (bundle && bundle.spawnArgs && bundle.spawnArgs !== "") {
                     this.startCapture(bundle.streamer, bundle.filename, bundle.spawnArgs);
                 }
             });
@@ -431,7 +448,8 @@ class Site {
 
     startCapture(streamer, filename, spawnArgs) {
         const fullname = filename + ".ts";
-        const captureProcess = childProcess.spawn("ffmpeg", spawnArgs);
+        const capper = this.config.streamlink ? "streamlink" : "ffmpeg";
+        const captureProcess = childProcess.spawn(capper, spawnArgs);
 
         if (captureProcess.pid) {
             this.msg(colors.name(streamer.nm) + " recording started (" + filename + ".ts)");
@@ -484,6 +502,14 @@ class Site {
             return;
         }
 
+        // Need to remember post-processing is happening, so that
+        // the offline check does not kill postprocess jobs.
+        let item = null;
+        if (this.streamerList.has(streamer.uid)) {
+            item = this.streamerList.get(streamer.uid);
+            item.postProcess = 1;
+        }
+
         const mySpawnArguments = [
             "-hide_banner",
             "-v",
@@ -499,7 +525,12 @@ class Site {
             mySpawnArguments.push("aac_adtstoasc");
         }
 
-        mySpawnArguments.push("-copyts");
+        if (this.config.streamlink) {
+            // mySpawnArguments.push("-movflags");
+            // mySpawnArguments.push("empty_moov+separate_moof+frag_keyframe");
+        } else {
+            mySpawnArguments.push("-copyts");
+        }
         mySpawnArguments.push(completeDir + "/" + filename + "." + this.config.autoConvertType);
 
         const myCompleteProcess = childProcess.spawn("ffmpeg", mySpawnArguments);
@@ -516,6 +547,10 @@ class Site {
 
             // Note: msg last since it rerenders screen.
             this.msg(colors.name(streamer.nm) + " done converting " + filename + "." + this.config.autoConvertType);
+
+            if (item !== null) {
+                item.postProcess = 0;
+            }
         });
 
         myCompleteProcess.on("error", (err) => {
@@ -539,32 +574,34 @@ class Site {
     }
 
     render() {
-        // TODO: Hack
-        for (let i = 0; i < 300; i++) {
-            this.list.deleteLine(0);
-        }
+        if (this.hidden === 0) {
+            // TODO: Hack
+            for (let i = 0; i < 300; i++) {
+                this.list.deleteLine(0);
+            }
 
-        // Map keys are UID, but want to sort list by name.
-        const sortedKeys = Array.from(this.streamerList.keys()).sort((a, b) => {
-            if (this.streamerList.get(a).nm < this.streamerList.get(b).nm) {
-                return -1;
-            }
-            if (this.streamerList.get(a).nm > this.streamerList.get(b).nm) {
-                return 1;
-            }
-            return 0;
-        });
+            // Map keys are UID, but want to sort list by name.
+            const sortedKeys = Array.from(this.streamerList.keys()).sort((a, b) => {
+                if (this.streamerList.get(a).nm < this.streamerList.get(b).nm) {
+                    return -1;
+                }
+                if (this.streamerList.get(a).nm > this.streamerList.get(b).nm) {
+                    return 1;
+                }
+                return 0;
+            });
 
-        for (let i = 0; i < sortedKeys.length; i++) {
-            const value = this.streamerList.get(sortedKeys[i]);
-            const name  = (colors.name(value.nm) + this.listpad).substring(0, this.listpad.length);
-            let state;
-            if (value.filename === "") {
-                state = value.state === "Offline" ? colors.offline(value.state) : colors.state(value.state);
-            } else {
-                state = colors.file(value.filename);
+            for (let i = 0; i < sortedKeys.length; i++) {
+                const value = this.streamerList.get(sortedKeys[i]);
+                const name  = (colors.name(value.nm) + this.listpad).substring(0, this.listpad.length);
+                let state;
+                if (value.filename === "") {
+                    state = value.state === "Offline" ? colors.offline(value.state) : colors.state(value.state);
+                } else {
+                    state = colors.file(value.filename);
+                }
+                this.list.pushLine(name + state);
             }
-            this.list.pushLine(name + state);
         }
         this.tui.screen.render();
     }

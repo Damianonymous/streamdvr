@@ -14,6 +14,7 @@ const TUI      = require("./tui");
 const MFC      = require("./mfc");
 const CB       = require("./cb");
 const TWITCH   = require("./twitch");
+const MIXER    = require("./mixer");
 
 const logFile  = fs.createWriteStream(path.resolve() + "/streamdvr.log", {flags: "w"});
 const config   = yaml.safeLoad(fs.readFileSync("config.yml", "utf8"));
@@ -34,7 +35,7 @@ function mainSiteLoop(site) {
         site.errMsg(err);
         // throw err;
     }).finally(() => {
-        site.dbgMsg("Done, waiting " + site.config.scanInterval + " seconds.");
+        // site.dbgMsg("Done, waiting " + site.config.scanInterval + " seconds.");
         setTimeout(() => { mainSiteLoop(site); }, site.config.scanInterval * 1000);
     });
 }
@@ -42,26 +43,32 @@ function mainSiteLoop(site) {
 function createSites() {
     tui.loadConfig();
 
-    if (config.enableMFC) {
+    if (typeof config.enableMFC !== "undefined" && config.enableMFC) {
         const mfc = new MFC.Mfc(config, tui);
         tui.addSite(mfc);
         Promise.try(() => mfc.connect()).then(() => {
             mainSiteLoop(mfc);
         }).catch((err) => {
-            mfc.errMsg(err);
+            mfc.errMsg(err.toString());
         });
     }
 
-    if (config.enableCB) {
+    if (typeof config.enableCB !== "undefined" && config.enableCB) {
         const cb = new CB.Cb(config, tui);
         tui.addSite(cb);
         mainSiteLoop(cb);
     }
 
-    if (config.enableTwitch) {
+    if (typeof config.enableTwitch !== "undefined" && config.enableTwitch) {
         const twitch = new TWITCH.Twitch(config, tui);
         tui.addSite(twitch);
         mainSiteLoop(twitch);
+    }
+
+    if (typeof config.enableMixer !== "undefined" && config.enableMixer) {
+        const mixer = new MIXER.Mixer(config, tui);
+        tui.addSite(mixer);
+        mainSiteLoop(mixer);
     }
 
     tui.initSites();
