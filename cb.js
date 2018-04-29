@@ -15,7 +15,7 @@ class Cb extends site.Site {
 
         for (let i = 0; i < this.siteConfig.streamers.length; i++) {
             const nm = this.siteConfig.streamers[i];
-            this.streamerList.set(nm, {uid: nm, nm: nm, state: "Offline", filename: "", captureProcess: null, postProcess: 0});
+            this.streamerList.set(nm, {uid: nm, nm: nm, site: this.padName, state: "Offline", filename: "", captureProcess: null, postProcess: 0});
         }
     }
 
@@ -73,7 +73,7 @@ class Cb extends site.Site {
 
                 super.checkStreamerState(streamer, msg, isStreaming, prevState);
             }
-            this.render();
+            this.tui.render();
             return true;
         }).catch((err) => {
             this.errMsg(colors.name(nm), " lookup problem: " + err.toString());

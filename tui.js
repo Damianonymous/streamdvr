@@ -11,6 +11,9 @@ function sleep(time) {
 
 class Tui {
     constructor(config) {
+        // For sizing columns
+        this.listpad = "                           ";
+
         // Handle to the cross-site config.yml
         this.config = config;
 
@@ -22,11 +25,33 @@ class Tui {
         this.SITES = [];
         this.tryingToExit = 0;
 
-        this.logbody = blessed.box({
-            top: "66%",
+
+        this.list = blessed.box({
+            top: 0,
             left: 0,
-            height: "34%",
-            width: "100%",
+            height: "100%-1",
+            width: "50%",
+            keys: true,
+            mouse: false,
+            alwaysScroll: true,
+            scrollable: true,
+            draggable: false,
+            shadow: false,
+            scrollbar: {
+                ch: " ",
+                bg: "blue"
+            },
+            border : {
+                type: "line",
+                fg: "blue"
+            }
+        });
+
+        this.logbody = blessed.box({
+            top: 0,
+            left: "50%",
+            height: "100%-1",
+            width: "50%",
             keys: true,
             mouse: false,
             alwaysScroll: true,
@@ -79,6 +104,7 @@ class Tui {
             this.exit();
         });
 
+        this.screen.append(this.list);
         this.screen.append(this.logbody);
         this.screen.append(this.inputBar);
         this.logbody.focus();
@@ -161,12 +187,47 @@ class Tui {
     log(text) {
         this.logbody.pushLine(text);
         this.logbody.setScrollPerc(100);
-        this.render();
+        this.render();  // TODO: skip if log is hidden for perf
         console.log(text);
     }
 
     render() {
         if (typeof this.screen !== "undefined") {
+            // TODO: Hack
+            for (let i = 0; i < 300; i++) {
+                this.list.deleteLine(0);
+            }
+
+            let streamerList = [];
+            for (let i = 0; i < this.SITES.length; i++) {
+                streamerList = streamerList.concat(this.SITES[i].getStreamerList());
+            }
+
+            // Map keys are UID, but want to sort list by name.
+            // const sortedKeys = Array.from(streamerList.keys()).sort((a, b) => {
+            //     if (streamerList.get(a).nm < streamerList.get(b).nm) {
+            //         return -1;
+            //     }
+            //     if (streamerList.get(a).nm > streamerList.get(b).nm) {
+            //         return 1;
+            //     }
+            //     return 0;
+            // });
+
+            // for (let i = 0; i < sortedKeys.length; i++) {
+            for (let i = 0; i < streamerList.length; i++) {
+                // const value = streamerList.get(sortedKeys[i]);
+                const value = streamerList[i];
+                const name  = (colors.name(value.nm) + this.listpad).substring(0, this.listpad.length);
+                const site = value.site;
+                let state;
+                if (value.filename === "") {
+                    state = value.state === "Offline" ? colors.offline(value.state) : colors.state(value.state);
+                } else {
+                    state = colors.file(value.filename);
+                }
+                this.list.pushLine(name + site + state);
+            }
             this.screen.render();
         }
     }
@@ -175,27 +236,15 @@ class Tui {
     display(cmd, window) {
         switch (window) {
         case "list":
-            for (let i = 0; i < this.SITES.length; i++) {
-                switch (cmd) {
-                case "show": this.SITES[i].show(); break;
-                case "hide": this.SITES[i].hide(); break;
-                }
-            }
             switch (cmd) {
-            case "show": this.logbody.top = "66%"; this.logbody.height = "34%";    break;
-            case "hide": this.logbody.top = 0;     this.logbody.height = "100%-1"; break;
+            case "show": this.list.show(); this.logbody.left = "50%"; this.logbody.width = "50%";  break;
+            case "hide": this.list.hide(); this.logbody.left = 0;     this.logbody.width = "100%"; break;
             }
             break;
         case "log":
             switch (cmd) {
-            case "show": this.logbody.show(); break;
-            case "hide": this.logbody.hide(); break;
-            }
-            for (let i = 0; i < this.SITES.length; i++) {
-                switch (cmd) {
-                case "show": this.SITES[i].restore(); break;
-                case "hide": this.SITES[i].full();    break;
-                }
+            case "show": this.logbody.show(); this.list.width = "50%";  break;
+            case "hide": this.logbody.hide(); this.list.width = "100%"; break;
             }
             break;
         }
@@ -241,8 +290,8 @@ class Tui {
         this.config.captureDirectory  = this.mkdir(this.config.captureDirectory);
         this.config.completeDirectory = this.mkdir(this.config.completeDirectory);
 
-        this.display(this.config.listshown ? "show" : "hide", "list");
-        this.display(this.config.logshown  ? "show" : "hide", "log");
+        // this.display(this.config.listshown ? "show" : "hide", "list");
+        // this.display(this.config.logshown  ? "show" : "hide", "log");
         this.render();
     }
 

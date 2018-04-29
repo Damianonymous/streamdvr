@@ -50,7 +50,7 @@ class Mfc extends site.Site {
             let msg = colors.name(model.nm);
 
             if (!this.streamerList.has(uid)) {
-                this.streamerList.set(uid, {uid: uid, nm: model.nm, state: "Offline", filename: "", captureProcess: null, postProcess: 0});
+                this.streamerList.set(uid, {uid: uid, nm: model.nm, site: this.padName, state: "Offline", filename: "", captureProcess: null, postProcess: 0});
             }
 
             const streamer = this.streamerList.get(uid);
@@ -86,7 +86,7 @@ class Mfc extends site.Site {
             }
 
             super.checkStreamerState(streamer, msg, isStreaming, prevState);
-            this.render();
+            this.tui.render();
 
             return true;
         }).catch((err) => {
