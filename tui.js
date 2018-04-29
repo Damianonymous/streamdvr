@@ -19,147 +19,151 @@ class Tui {
 
         this.total = Number(config.enableMFC) + Number(config.enableCB) + Number(config.enableTwitch) + Number(config.enableMixer);
 
-        this.screen = blessed.screen({smartCSR: true, autoPadding: true, dockBorders: true});
-        this.screen.title = "streamdvr";
-
         this.SITES = [];
         this.tryingToExit = 0;
-
-
-        this.list = blessed.box({
-            top: 0,
-            left: 0,
-            height: "100%-1",
-            width: 70,
-            keys: true,
-            mouse: false,
-            alwaysScroll: true,
-            scrollable: true,
-            draggable: false,
-            shadow: false,
-            scrollbar: {
-                ch: " ",
-                bg: "blue"
-            },
-            border: {
-                type: "line",
-                fg: "blue"
-            }
-        });
-
-        this.logbody = blessed.box({
-            top: 0,
-            left: 69,
-            height: "100%-1",
-            width: "100%-70",
-            keys: true,
-            mouse: false,
-            alwaysScroll: true,
-            scrollable: true,
-            scrollbar: {
-                ch: " ",
-                bg: "blue"
-            },
-            border: {
-                type: "line",
-                fg: "blue"
-            }
-        });
-
-        this.inputBar = blessed.textbox({
-            bottom: 0,
-            left: 0,
-            height: 1,
-            width: "100%",
-            keys: true,
-            mouse: false,
-            inputOnFocus: true,
-            style: {
-                fg: "white",
-                bg: "none"
-            }
-        });
-
-        this.screen.key("pageup", () => {
-            this.screen.focused.scroll(-this.screen.focused.height || -1);
-            this.render();
-        });
-
-        this.screen.key("pagedown", () => {
-            this.screen.focused.scroll(this.screen.focused.height || 1);
-            this.render();
-        });
-
-        this.screen.key("enter", () => {
-            this.inputBar.focus();
-        });
-
-        // Close on q, or ctrl+c
-        // Note: tui.screen intercepts ctrl+c and it does not pass down to ffmpeg
-        this.screen.key(["q", "C-c"], () => (
-            this.exit()
-        ));
-
-        this.inputBar.key(["C-c"], () => (
-            this.exit()
-        ));
 
         process.on("SIGINT", () => {
             this.exit();
         });
 
-        this.screen.append(this.list);
-        this.screen.append(this.logbody);
-        this.screen.append(this.inputBar);
-        this.logbody.focus();
+        if (config.tui) {
+            this.screen = blessed.screen({smartCSR: true, autoPadding: true, dockBorders: true});
+            this.screen.title = "streamdvr";
 
-        this.logHidden = false;
-        this.listHidden = true;
+            this.list = blessed.box({
+                top: 0,
+                left: 0,
+                height: "100%-1",
+                width: 70,
+                keys: true,
+                mouse: false,
+                alwaysScroll: true,
+                scrollable: true,
+                draggable: false,
+                shadow: false,
+                scrollbar: {
+                    ch: " ",
+                    bg: "blue"
+                },
+                border: {
+                    type: "line",
+                    fg: "blue"
+                }
+            });
 
-        // CLI
-        this.inputBar.on("submit", (text) => {
-            this.inputBar.clearValue();
+            this.logbody = blessed.box({
+                top: 0,
+                left: 69,
+                height: "100%-1",
+                width: "100%-70",
+                keys: true,
+                mouse: false,
+                alwaysScroll: true,
+                scrollable: true,
+                scrollbar: {
+                    ch: " ",
+                    bg: "blue"
+                },
+                border: {
+                    type: "line",
+                    fg: "blue"
+                }
+            });
 
-            const tokens = text.split(" ");
-            if (tokens.length === 0) {
+            this.inputBar = blessed.textbox({
+                bottom: 0,
+                left: 0,
+                height: 1,
+                width: "100%",
+                keys: true,
+                mouse: false,
+                inputOnFocus: true,
+                style: {
+                    fg: "white",
+                    bg: "none"
+                }
+            });
+
+            this.screen.key("pageup", () => {
+                this.screen.focused.scroll(-this.screen.focused.height || -1);
                 this.render();
-                return;
-            }
+            });
 
-            switch (tokens[0]) {
-            case "add":
-            case "addtemp":
-            case "remove":
-                if (tokens.length >= 3) {
-                    this.updateList(tokens[0], tokens[1], tokens[2], tokens[0] === "addtemp");
-                }
-                break;
+            this.screen.key("pagedown", () => {
+                this.screen.focused.scroll(this.screen.focused.height || 1);
+                this.render();
+            });
 
-            case "reload":
-                this.loadConfig();
-                break;
+            this.screen.key("enter", () => {
+                this.inputBar.focus();
+            });
 
-            case "show":
-            case "hide":
-                if (tokens.length >= 2) {
-                    this.display(tokens[0], tokens[1]);
-                }
-                break;
+            // Close on q, or ctrl+c
+            // Note: tui.screen intercepts ctrl+c and it does not pass down to ffmpeg
+            this.screen.key(["q", "C-c"], () => (
+                this.exit()
+            ));
 
-            case "help":
-                this.logbody.pushLine("Commands:");
-                this.logbody.pushLine("add     [site] [streamer]");
-                this.logbody.pushLine("addtemp [site] [streamer]");
-                this.logbody.pushLine("remove  [site] [streamer]");
-                this.logbody.pushLine("reload");
-                this.logbody.pushLine("show    [log|list]");
-                this.logbody.pushLine("hide    [log|list]");
-                this.logbody.setScrollPerc(100);
-                break;
-            }
+            this.inputBar.key(["C-c"], () => (
+                this.exit()
+            ));
+
+            this.screen.append(this.list);
+            this.screen.append(this.logbody);
+            this.screen.append(this.inputBar);
             this.logbody.focus();
-            this.render();
-        });
+
+            this.logHidden = false;
+            this.listHidden = true;
+
+            // CLI
+            this.inputBar.on("submit", (text) => {
+                this.inputBar.clearValue();
+
+                const tokens = text.split(" ");
+                if (tokens.length === 0) {
+                    this.render();
+                    return;
+                }
+
+                switch (tokens[0]) {
+                case "add":
+                case "addtemp":
+                case "remove":
+                    if (tokens.length >= 3) {
+                        this.updateList(tokens[0], tokens[1], tokens[2], tokens[0] === "addtemp");
+                    }
+                    break;
+
+                case "reload":
+                    this.loadConfig();
+                    break;
+
+                case "show":
+                case "hide":
+                    if (tokens.length >= 2) {
+                        this.display(tokens[0], tokens[1]);
+                    }
+                    break;
+
+                case "help":
+                    this.logbody.pushLine("Commands:");
+                    this.logbody.pushLine("add     [site] [streamer]");
+                    this.logbody.pushLine("addtemp [site] [streamer]");
+                    this.logbody.pushLine("remove  [site] [streamer]");
+                    this.logbody.pushLine("reload");
+                    this.logbody.pushLine("show    [log|list]");
+                    this.logbody.pushLine("hide    [log|list]");
+                    this.logbody.setScrollPerc(100);
+                    break;
+                }
+                this.logbody.focus();
+                this.render();
+            });
+        } else {
+            this.logHidden = true;
+            this.listHidden = true;
+        }
     }
 
     addSite(site) {
@@ -170,13 +174,16 @@ class Tui {
     initSites() {
         // Initial loadConfig is called before sites are created
         // so correct the shown status for the new lists.
-        this.display(this.config.listshown ? "show" : "hide", "list");
+        if (this.config.tui) {
+            this.display(this.config.listshown ? "show" : "hide", "list");
 
-        const hotkeys = ["1", "2", "3", "4"];
-        for (let i = 0; i < hotkeys.length && i < this.SITES.length; i++) {
-            this.screen.key(hotkeys[i], () => {
-                this.SITES[i].list.focus();
-            });
+
+            const hotkeys = ["1"];
+            for (let i = 0; i < hotkeys.length; i++) {
+                this.screen.key(hotkeys[i], () => {
+                    this.list.focus();
+                });
+            }
         }
 
         for (let i = 0; i < this.SITES.length; i++) {
@@ -192,16 +199,18 @@ class Tui {
     }
 
     log(text) {
-        this.logbody.pushLine(text);
-        this.logbody.setScrollPerc(100);
-        if (!this.logHidden) {
-            this.render();
+        if (this.config.tui) {
+            this.logbody.pushLine(text);
+            this.logbody.setScrollPerc(100);
+            if (!this.logHidden) {
+                this.render();
+            }
         }
         console.log(text);
     }
 
     render() {
-        if (typeof this.screen !== "undefined") {
+        if (typeof this.screen !== "undefined" && this.config.tui) {
             if (!this.listHidden) {
                 // TODO: Hack
                 for (let i = 0; i < 300; i++) {
@@ -310,9 +319,11 @@ class Tui {
         this.config.captureDirectory  = this.mkdir(this.config.captureDirectory);
         this.config.completeDirectory = this.mkdir(this.config.completeDirectory);
 
-        this.display(this.config.listshown ? "show" : "hide", "list");
-        this.display(this.config.logshown  ? "show" : "hide", "log");
-        this.render();
+        if (this.config.tui) {
+            this.display(this.config.listshown ? "show" : "hide", "list");
+            this.display(this.config.logshown  ? "show" : "hide", "log");
+            this.render();
+        }
     }
 
     busy() {

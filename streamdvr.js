@@ -20,9 +20,11 @@ const logFile  = fs.createWriteStream(path.resolve() + "/streamdvr.log", {flags:
 const config   = yaml.safeLoad(fs.readFileSync("config.yml", "utf8"));
 const tui      = new TUI.Tui(config);
 
-console.log = function(msg) {
-    logFile.write(util.format(msg) + "\n");
-};
+if (config.tui) {
+    console.log = function(msg) {
+        logFile.write(util.format(msg) + "\n");
+    };
+}
 
 function mainSiteLoop(site) {
     Promise.try(() => site.checkFileSize(site.config.captureDirectory, site.config.maxByteSize)
