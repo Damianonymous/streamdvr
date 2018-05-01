@@ -423,12 +423,8 @@ class Site {
             mySpawnArguments.push("aac_adtstoasc");
         }
 
-        if (this.config.streamlink) {
-            // mySpawnArguments.push("-movflags");
-            // mySpawnArguments.push("empty_moov+separate_moof+frag_keyframe");
-        } else {
-            mySpawnArguments.push("-copyts");
-        }
+        mySpawnArguments.push("-copyts");
+        mySpawnArguments.push("-start_at_zero");
         mySpawnArguments.push(completeDir + "/" + filename + "." + this.config.autoConvertType);
 
         const myCompleteProcess = childProcess.spawn("ffmpeg", mySpawnArguments);
