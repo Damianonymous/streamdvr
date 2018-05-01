@@ -58,7 +58,12 @@ class Cb extends site.Site {
                     msg += " is in a group show.";
                     streamer.state = "Group Show";
                 } else if (currState === "away") {
-                    msg += colors.name("'s") + " stream is off.";
+                    if (msg.charAt(msg.length - 6) === "s") {
+                        msg += colors.name("'");
+                    } else {
+                        msg += colors.name("'s");
+                    }
+                    msg += " stream is off.";
                     streamer.state = "Away";
                 } else if (currState === "hidden") {
                     msg += " is online but hidden.";
