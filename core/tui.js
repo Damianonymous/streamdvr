@@ -22,6 +22,9 @@ class Tui {
         this.SITES = [];
         this.tryingToExit = 0;
 
+        this.logHidden = false;
+        this.listHidden = true;
+
         process.on("SIGINT", () => {
             this.exit();
         });
@@ -113,9 +116,6 @@ class Tui {
             this.screen.append(this.inputBar);
             this.logbody.focus();
 
-            this.logHidden = false;
-            this.listHidden = true;
-
             // CLI
             this.inputBar.on("submit", (text) => {
                 this.inputBar.clearValue();
@@ -160,9 +160,6 @@ class Tui {
                 this.logbody.focus();
                 this.render();
             });
-        } else {
-            this.logHidden = true;
-            this.listHidden = true;
         }
     }
 
