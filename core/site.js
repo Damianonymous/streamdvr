@@ -7,8 +7,6 @@ const moment       = require("moment");
 const colors       = require("colors/safe");
 const childProcess = require("child_process");
 
-let inst = 1;
-
 class Site {
     constructor(siteName, config, siteDir, tui) {
         // For sizing columns
@@ -31,9 +29,6 @@ class Site {
 
         // Blessed UI elements
         this.tui = tui;
-
-        // determines position in UI
-        this.inst = inst++;
 
         // Temporary data store used by child classes for outstanding status
         // lookup threads.  Is cleared and repopulated during each loop
